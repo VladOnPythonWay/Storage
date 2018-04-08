@@ -13,64 +13,95 @@ except:
 def getMayaWindow():
     pointer = omui.MQtUtil.mainWindow()
     if pointer is not None:
-        return wrapInstance(long(pointer), QWidget)
+        return wrapInstance(long(pointer), QtWidgets.QWidget)
 
 
 def constraintMaster_UI():
     objectName = 'PyConstraintMasterWin'
-    #check if ui already exists or not
+    # check if ui already exists or not
     if cmds.window('PyConstraintMasterWin', exists=1):
-        cmds.deleteUI('PyConstraintMasterWin',wnd=1)
+        cmds.deleteUI('PyConstraintMasterWin', wnd=1)
 
-    #create window
+    # create window
     parent = getMayaWindow()
     window = QtWidgets.QMainWindow(parent)
     window.setObjectName(objectName)
     window.setWindowTitle('Constraint Master')
 
-    #create main widget
-    mainWidget = QWidget()
+    # create main widget
+    mainWidget = QtWidgets.QWidget()
     window.setCentralWidget(mainWidget)
     QtWidgets.QStyleFactory.create('Windows')
-    #Create our main vertical layout
+    # Create our main vertical layout
     verticalLayout = QtWidgets.QVBoxLayout(mainWidget)
-    imagePath = cmds.internalVar(upd=1) + 'icons/wallpaper-cf1-1680x1050'
-    window.setStyleSheet('background-image:url(' + imagePath + ');border:solid black 1px;')
-    #create the translate layout
-    translateLayout = QtWidgets.QHBoxLayout()
-    verticalLayout.addLayout(translateLayout)
+    window.setStyleSheet('background-color:rgb(0,51,102)')
+    # create operate option radio button
+    operateLayout = QtWidgets.QHBoxLayout()
+    verticalLayout.addLayout(operateLayout)
+    # create operate option label
+    operateLabel = QtWidgets.QLabel('Operate on joints:')
+    operateLayout.addWidget(operateLabel)
+    # create operate radio buttons
+    operateSelectionButton = QtWidgets.QRadioButton('Selection')
+    operateLayout.addWidget(operateSelectionButton)
+    
+    operateHierarchyButton = QtWidgets.QRadioButton('Hierarchy')
+    operateLayout.addWidget(operateHierarchyButton)
+    # create the aim layout
+    aimLayout = QtWidgets.QHBoxLayout()
+    verticalLayout.addLayout(aimLayout)
 
-    #create translate label
-    translateLabel = QtWidgets.QLabel('Translate:')
-    translateLayout.addWidget(translateLabel)
+    # create aim label
+    aimLabel = QtWidgets.QLabel('Aim Vector:')
+    aimLayout.addWidget(aimLabel)
+    # create aim buttons 
+    axCheckBotton = QtWidgets.QPushButton('X')
+    axCheckBotton.isCheckable()
+    axCheckBotton.setCheckable(True)
+    aimLayout.addWidget(axCheckBotton)
+    axCheckBotton.setStyleSheet('background-color:rgb(23,85,146)')
 
-    txCheckBox = QtWidgets.QCheckBox('X')
-    translateLayout.addWidget(txCheckBox)
+    ayCheckBotton = QtWidgets.QPushButton('Y')
+    ayCheckBotton.setCheckable(True)
+    aimLayout.addWidget(ayCheckBotton)
+    ayCheckBotton.setStyleSheet('background-color:rgb(23,85,146)')
 
-    tyCheckBox = QtWidgets.QCheckBox('Y')
-    translateLayout.addWidget(tyCheckBox)
+    azCheckBotton = QtWidgets.QPushButton('Z')
+    azCheckBotton.setCheckable(True)
+    aimLayout.addWidget(azCheckBotton)
+    azCheckBotton.setStyleSheet('background-color:rgb(23,85,146)')
+    # create the up layout
+    upLayout = QtWidgets.QHBoxLayout()
+    verticalLayout.addLayout(upLayout)
 
-    tzCheckBox = QtWidgets.QCheckBox('Z')
-    translateLayout.addWidget(tzCheckBox)
+    # create up label
+    upLabel = QtWidgets.QLabel('Up Vector:')
+    upLayout.addWidget(upLabel)
+    # create up buttons 
+    uxCheckBotton = QtWidgets.QPushButton('X')
+    uxCheckBotton.isCheckable()
+    uxCheckBotton.setCheckable(True)
+    upLayout.addWidget(uxCheckBotton)
+    uxCheckBotton.setStyleSheet('background-color:rgb(23,85,146)')
+
+    uyCheckBotton = QtWidgets.QPushButton('Y')
+    uyCheckBotton.setCheckable(True)
+    upLayout.addWidget(uyCheckBotton)
+    uyCheckBotton.setStyleSheet('background-color:rgb(23,85,146)')
+
+    uzCheckBotton = QtWidgets.QPushButton('Z')
+    uzCheckBotton.setCheckable(True)
+    upLayout.addWidget(uzCheckBotton)
+    uzCheckBotton.setStyleSheet('background-color:rgb(23,85,146)')
 
 
-    #create the rotate layout
-    rotateLayout = QtWidgets.QHBoxLayout()
-    verticalLayout.addLayout(rotateLayout)
-
-    #create the rotate layout
-    scaleLayout = QtWidgets.QHBoxLayout()
-    verticalLayout.addLayout(scaleLayout)
-
-    #create button
+    # create button
     button = QtWidgets.QPushButton('Create Constraint')
     verticalLayout.addWidget(button)
-    imagePath = cmds.internalVar(upd=1) + 'icons/2957c06bde98ccc.jpg'
-    button.setStyleSheet('background-image:url(' + imagePath + ');border:solid black 1px;')
+    button.setStyleSheet('background-color: rgb(23,85,146)')
 
-
-
-    #show the window
+    # show the window
     window.show()
+
 
 constraintMaster_UI()
