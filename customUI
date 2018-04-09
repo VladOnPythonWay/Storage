@@ -1,0 +1,345 @@
+import maya.cmds as cmds
+from functools import partial
+import os, sys
+import re
+from RigaCustomStrand import lib
+reload(lib)
+
+
+autoResizeWindow = True
+
+#################################################################################################################################################
+#################################################################################################################################################
+##########################################  Base Skeleton Setup Names ###########################################################################
+#################################################################################################################################################
+class UI():
+
+    def __init__(self):
+
+        self._ui = dict()
+        self._window = 'RigaCustomStrand'
+        self._title = 'Riga Custom Strand'
+        self.overRname = []
+        self.identif = []
+        self.parentBSkeleton = []
+        self.objectName = []
+        self.openUI()
+        #################################################################################################################################################
+        ##########################################  NAMES - VARIABLE  ###################################################################################
+        #################################################################################################################################################
+        self.strandIkSrfList = [[],[]]
+
+        self.strandCrvList = [[],[]]
+        self.strandSrfList = [[],[]]
+
+        self.strandJtFkSpaceList = [[],[]]
+        self.strandIfFkSpaceList = [[],[]]
+        self.strandJtIkSpaceList = [[],[]]
+        self.strandIfIkSpaceList = [[],[]]
+
+        self.strandJtFkList = [[],[]]
+        self.strandIfFkList = [[],[]]
+
+
+        self.strandJtIkList = [[],[]]
+        self.strandIfIkList = [[],[]]
+
+        self.strandConstList = [[],[]]
+        self.strandCancelList = [[],[]]
+
+
+        self.strandConstGpList = [[],[]]
+        self.strandCancelGpList = [[],[]]
+        self.constraintAxis = [[[1.0,0.0,0.0], [0.0,0.0,-1.0],[1.0,0.0,0.0], [0.0,0.0,-1.0]],[[-1.0,0.0,0.0],[0.0,0.0,1.0],[-1.0,0.0,0.0],[0.0,0.0,1.0]]]
+
+    ###########################################################################################################################################################
+    def openUI(self):
+        if cmds.window(self._window,q=True,ex=True):
+            cmds.deleteUI(self._window)
+    ###########################################################################################################################################################
+    ###########################################  CREATE WINDOW AND ONE OF THE MAIN LAYOUTS  ###################################################################
+    ###########################################################################################################################################################   
+        self._ui['win'] = cmds.window(self._window,t= self._title, s=True, mb=True, rtf=True)
+        self._ui['mainLayout'] = cmds.rowColumnLayout(numberOfColumns=4, cs=([1, 5],[2, 5],[3, 5],[4, 5]))
+    ###########################################################################################################################################################
+    ##########################################  CREATE MENU ITEM ON TOP OF LAYOUT FOR DOCUMENTATION  ##########################################################
+    ###########################################################################################################################################################   
+        self._ui['menuBar'] = cmds.menu(label='Help')    
+        self._ui['engHelp'] = cmds.menuItem(label='Help on the way(ENG)')
+        self._ui['jpnHelp'] = cmds.menuItem(label='Help on the way(JPN)')
+    ###########################################################################################################################################################
+    #########################################  MAKING SCROLL LIST WHERE YOU INPUT SELECTED ITEMS - FK JOINTS  #################################################
+    ###########################################################################################################################################################   
+        self._ui['FKFrameLayoutA'] = cmds.frameLayout(l='        Load All Strand FK Joints',bgc = [0.0, 0.0, 1.0], fn='boldLabelFont', lv=1, p=self._ui['mainLayout'] )
+        self._ui['FKFrameLayoutB'] = cmds.frameLayout(l='             Please follow name :',bgc = [0.5, 0.5, 0.5], fn='smallBoldLabelFont', lv=1)
+        self._ui['FKFrameLayoutC'] = cmds.frameLayout(l='objectA_jtFk_AL/object@_jtFk_@L',bgc = [0.5, 0.5, 0.5], fn='smallBoldLabelFont', lv=1)
+
+        self._ui['FKScrollListCtrlA'] = cmds.textScrollList(ams=0, h=250, p = self._ui['FKFrameLayoutC'])
+        self._ui['FKRowLayoutA'] = cmds.rowLayout(nc=2, adj=1)
+        self._ui['FKScrollListBtnA'] = cmds.button(l='Load Selected', c=partial(self.appendSelObj, self._ui['FKScrollListCtrlA'], 1))
+        self._ui['FKScrollListBtnA'] = cmds.button(l='-', w=30, c=partial(self.appendSelObj, self._ui['FKScrollListCtrlA'], 0))
+    ###########################################################################################################################################################
+    #########################################  MAKING SCROLL LIST WHERE YOU INPUT SELECTED ITEMS - IK JOINTS  #################################################
+    ###########################################################################################################################################################
+        self._ui['IKFrameLayoutA'] = cmds.frameLayout(l='        Load All Strand IK Joints  ',bgc = [0.0, 0.0, 1.0], fn='boldLabelFont', lv=1, p=self._ui['mainLayout'] )
+        self._ui['IKFrameLayoutB'] = cmds.frameLayout(l='             Please follow naming :',bgc = [0.5, 0.5, 0.5], fn='smallBoldLabelFont', lv=1)
+        self._ui['IKFrameLayoutC'] = cmds.frameLayout(l='objectA_jtIk_AL/object@_jtIk_@L',bgc = [0.5, 0.5, 0.5], fn='smallBoldLabelFont', lv=1)
+        
+        self._ui['IKScrollListCtrlA'] = cmds.textScrollList(ams=0, h=250, p = self._ui['IKFrameLayoutC'])
+        self._ui['IKRowLayoutA'] = cmds.rowLayout(nc=2, adj=1, p =self._ui['IKFrameLayoutC'])
+        self._ui['IKScrollListBtnA'] = cmds.button(l='Load Selected', p =self._ui['IKRowLayoutA'], c=partial(self.appendSelObj, self._ui['IKScrollListCtrlA'], 1) )
+        self._ui['IKScrollListBtnA'] = cmds.button(l='-', w=30, p = self._ui['IKRowLayoutA'], c=partial(self.appendSelObj, self._ui['IKScrollListCtrlA'], 0))
+    ###########################################################################################################################################################
+    #########################################  MAKING SCROLL LIST WHERE YOU INPUT SELECTED ITEMS - SURFACES  ##################################################
+    ########################################################################################################################################################### 
+        self._ui['SrfFrameLayoutA'] = cmds.frameLayout(l='      Load All Strand Surfaces   ',bgc = [0.0, 0.5, 1.0], fn='boldLabelFont', lv=1, p=self._ui['mainLayout'])
+        self._ui['SrfFrameLayoutB'] = cmds.frameLayout(l='           Please follow naming :',bgc = [0.5, 0.5, 0.5], fn='smallBoldLabelFont', lv=1)
+        self._ui['SrfFrameLayoutC'] = cmds.frameLayout(l='    objectA_srf_L/object@_srf_L',bgc = [0.5, 0.5, 0.5], fn='smallBoldLabelFont', lv=1)
+
+        self._ui['SrfScrollListCtrlA'] = cmds.textScrollList(ams=0, h=250, p = self._ui['SrfFrameLayoutC'])
+        self._ui['SrfRowLayoutA'] = cmds.rowLayout(nc=2, adj=1, p =self._ui['SrfFrameLayoutC'])
+        self._ui['SrfScrollListBtnA'] = cmds.button(l='Load Selected', p =self._ui['SrfRowLayoutA'],c=partial(self.appendSelObj, self._ui['SrfScrollListCtrlA'], 1))
+        self._ui['SrfScrollListBtnA'] = cmds.button(l='-', w=30, p = self._ui['SrfRowLayoutA'],c=partial(self.appendSelObj, self._ui['SrfScrollListCtrlA'], 0))
+    ###########################################################################################################################################################
+    #########################################  MAKING SCROLL LIST WHERE YOU INPUT SELECTED ITEMS - CURVES  ####################################################
+    ###########################################################################################################################################################
+        self._ui['CrvFrameLayoutA'] = cmds.frameLayout(l='   Load All Strand Isoparm Curves ',bgc = [0.0, 0.5, 1.0], fn='boldLabelFont', lv=1, p=self._ui['mainLayout'])
+        self._ui['CrvFrameLayoutB'] = cmds.frameLayout(l='             Please follow naming :',bgc = [0.5, 0.5, 0.5], fn='smallBoldLabelFont', lv=1)
+        self._ui['CrvFrameLayoutC'] = cmds.frameLayout(l='       objectA_crv_L/object@_crv_L',bgc = [0.5, 0.5, 0.5], fn='smallBoldLabelFont', lv=1)
+
+        self._ui['CrvScrollListCtrlA'] = cmds.textScrollList(ams=0, h=250, p = self._ui['CrvFrameLayoutC'])
+        self._ui['CrvRowLayoutA'] = cmds.rowLayout(nc=2, adj=1, p =self._ui['CrvFrameLayoutC'])
+        self._ui['CrvScrollListBtnA'] = cmds.button(l='Load Selected', p =self._ui['CrvRowLayoutA'],c=partial(self.appendSelObj, self._ui['CrvScrollListCtrlA'], 1))
+        self._ui['CrvScrollListBtnA'] = cmds.button(l='-', w=30, p = self._ui['CrvRowLayoutA'], c=partial(self.appendSelObj, self._ui['CrvScrollListCtrlA'], 0))
+    ###########################################################################################################################################################
+    ###################################################   #CREATING SECOND MAIN LAYOUT   ######################################################################
+    ###########################################################################################################################################################
+        self._ui['mainLayoutB'] = cmds.rowColumnLayout(numberOfColumns=2, p=self._ui['win'])
+    ###########################################################################################################################################################   
+    ##########################################  CREATING TEXT FIELDS FOR BASE SKELETON INFORMATION INPUT  #####################################################
+    ###########################################################################################################################################################
+        self._ui['BaseSkltnInfoLayout'] = cmds.columnLayout(adj=1, p=self._ui['mainLayoutB'])
+        self._ui['BaseSkltnInfoTxt'] = cmds.textFieldGrp(l='Object Name: ', tx='example - jacket', p=self._ui['BaseSkltnInfoLayout'])
+        self._ui['BaseSkltnInfoBtnA'] = cmds.radioButtonGrp(l='IK Stretch: ', nrb=2, la2=['Need','No Need'], sl=2, cw2=[25,25], p=self._ui['BaseSkltnInfoLayout'] )
+        self._ui['BaseSkltnInfoTxtA'] = cmds.textFieldGrp(l='Base Generic Name: ', tx='', p=self._ui['BaseSkltnInfoLayout'])
+        self._ui['BaseSkltnInfoBtnB'] = cmds.textFieldButtonGrp(bl='Set', l='Parent BaseSkeleton: ', tx='', ed=0, p=self._ui['BaseSkltnInfoLayout'])
+        cmds.textFieldButtonGrp(self._ui['BaseSkltnInfoBtnB'], e=True, bc=partial(self.appendParentSel))
+        self._ui['CreateButtonA'] = cmds.button(l='Proceed with creating custom strand (read manual)', h=50, p =self._ui['BaseSkltnInfoLayout'], c=self.strandScript)
+        self._ui['bpmButtonA'] = cmds.button(l='Connect bind pre matrix', p =self._ui['BaseSkltnInfoLayout'])
+    ###########################################################################################################################################################
+    ###############################################   CREATING COLAPSABLE FRAME LAYOUT FOR AXIS ADJUSTING   ###################################################
+    ###########################################################################################################################################################
+        self._ui['AxisLayoutA'] = cmds.columnLayout(adj=1,w=380, p=self._ui['mainLayoutB'])
+        self._ui['srfConstEnable'] = cmds.checkBoxGrp(l='Constraint Settings: ', l1='User defined', v1=0, ncb=1)
+        self._ui['AxisInfoLayoutA'] = cmds.frameLayout(lv=1, l='Curve Points Constraint Multi', cll=1, cl=1, vis=1, p=self._ui['AxisLayoutA'])
+    ###########################################################################################################################################################
+    #################################################  CREATING AXIS TABS FOR LEFT/RIGHT , FK/IK JOINTS  ######################################################
+    ###########################################################################################################################################################    
+        self._ui['AxisInfoLayoutB'] = cmds.tabLayout(p=self._ui['AxisInfoLayoutA'])
+        
+        self._ui['AxisInfoLayoutC'] = cmds.columnLayout(adj=1, bgc=[.5,.4,.5], p=self._ui['AxisInfoLayoutB'] )
+        self._ui['AxisInfoFieldGrpA'] = cmds.floatFieldGrp( nf=3, l='Aim Vector: ', value1=1.0, value2=0.0, value3=0.0)
+        self._ui['AxisInfoFieldGrpB'] = cmds.floatFieldGrp( nf=3, l='Up Vector: ', value1=0.0, value2=0.0, value3=-1.0)
+
+        self._ui['AxisInfoLayoutD'] = cmds.columnLayout(adj=1, bgc=[.5,.4,.5], p=self._ui['AxisInfoLayoutB'])
+        self._ui['AxisInfoFieldGrpC'] = cmds.floatFieldGrp( nf=3, l='Aim Vector: ', value1=-1.0, value2=0.0, value3=0.0)
+        self._ui['AxisInfoFieldGrpD'] = cmds.floatFieldGrp( nf=3, l='Up Vector: ', value1=0.0, value2=0.0, value3=1.0 )
+
+        self._ui['AxisInfoLayoutE'] = cmds.columnLayout(adj=1, bgc=[.4,.4,.5], p=self._ui['AxisInfoLayoutB'])
+        self._ui['AxisInfoFieldGrpE'] = cmds.floatFieldGrp( nf=3, l='Aim Vector: ', value1=1.0, value2=0.0, value3=0.0)
+        self._ui['AxisInfoFieldGrpF'] = cmds.floatFieldGrp( nf=3, l='Up Vector: ', value1=0.0, value2=0.0, value3=-1.0)
+
+        self._ui['AxisInfoLayoutF'] = cmds.columnLayout(adj=1, bgc=[.4,.4,.5], p=self._ui['AxisInfoLayoutB'])
+        self._ui['AxisInfoFieldGrpG'] = cmds.floatFieldGrp( nf=3, l='Aim Vector: ', value1=1.0, value2=0.0, value3=0.0 )
+        self._ui['AxisInfoFieldGrpH'] = cmds.floatFieldGrp( nf=3, l='Up Vector: ', value1=0.0, value2=0.0, value3=1.0)
+        self._ui['AxisInfoTabsLayoutA'] = cmds.tabLayout(self._ui['AxisInfoLayoutB'], e=1, tl=((self._ui['AxisInfoLayoutC'], 'FK - Left'), (self._ui['AxisInfoLayoutD'], 'FK - Right'),
+                                                                                     (self._ui['AxisInfoLayoutE'], 'IK - Left'), (self._ui['AxisInfoLayoutF'], 'IK - Right')) ) 
+    ###########################################################################################################################################################
+    ######################################################  HAPPY END OF UI SCRIPT  ###########################################################################
+    ###########################################################################################################################################################   
+        cmds.showWindow(self._ui['win'])
+    ###########################################################################################################################################################
+
+    def appendSelObj(self,tslName, oper, *args):
+        if oper == 1:
+            cmds.textScrollList(tslName, e=1, ra=1)
+            selObj = cmds.ls(sl=True)
+            cmds.textScrollList(tslName, e=True, append=selObj)
+        if oper == 0:
+            sli = cmds.textScrollList(tslName, q=1, sii=1)
+            if sli:
+                for i in sli:
+                    cmds.textScrollList(tslName, e=1, rii=i)
+
+    def sortFKListFromUI(self,*args):
+        if self.strandJtFkList:
+            for l in range(len(self.strandJtFkList)):
+                for o in range(len(self.strandJtFkList[l])):
+                    del self.strandJtFkList[l][o]
+                    
+            lsObj = cmds.textScrollList(self._ui['FKScrollListCtrlA'], q=1, ai=1)
+            for i in lsObj:
+                objSplit = i.split('_')
+                if objSplit[2][-1] == 'L':
+                    self.strandJtFkList[0].extend([i])
+                if objSplit[2][-1] == 'R':
+                    self.strandJtFkList[1].extend([i])
+        else:        
+            for i in lsObj:
+                objSplit = i.split('_')
+                if objSplit[2][-1] == 'L':
+                    self.strandJtFkList[0].extend([i])
+                if objSplit[2][-1] == 'R':
+                    self.strandJtFkList[1].extend([i])
+
+    def sortIKListFromUI(self,*args):
+        if self.strandJtIkList:
+            for l in range(len(self.strandJtIkList)):
+                for o in range(len(self.strandJtIkList[l])):
+                    del self.strandJtIkList[l][o]
+                    
+            lsObj = cmds.textScrollList(self._ui['IKScrollListCtrlA'], q=1, ai=1)
+            for i in lsObj:
+                objSplit = i.split('_')
+                if objSplit[2][-1] == 'L':
+                    self.strandJtIkList[0].extend([i])
+                if objSplit[2][-1] == 'R':
+                    self.strandJtIkList[1].extend([i])
+        else:        
+            for i in lsObj:
+                objSplit = i.split('_')
+                if objSplit[2][-1] == 'L':
+                    self.strandJtIkList[0].extend([i])
+                if objSplit[2][-1] == 'R':
+                    self.strandJtIkList[1].extend([i])
+                    
+                    
+    def sortSrfListFromUI(self,*args):
+        if self.strandSrfList:
+            for l in range(len(self.strandSrfList)):
+                for o in range(len(self.strandSrfList[l])):
+                    del self.strandSrfList[l][o]
+                    
+            lsObj = cmds.textScrollList(self._ui['SrfScrollListCtrlA'], q=1, ai=1)
+            for i in lsObj:
+                objSplit = i.split('_')
+                if objSplit[2][-1] == 'L':
+                    self.strandSrfList[0].extend([i])
+                if objSplit[2][-1] == 'R':
+                    self.strandSrfList[1].extend([i])
+        else:        
+            for i in lsObj:
+                objSplit = i.split('_')
+                if objSplit[2][-1] == 'L':
+                    self.strandSrfList[0].extend([i])
+                if objSplit[2][-1] == 'R':
+                    self.strandSrfList[1].extend([i])
+                    
+                    
+    def sortCrvListFromUI(self,*args):
+        if self.strandCrvList:
+            for l in range(len(self.strandCrvList)):
+                for o in range(len(self.strandCrvList[l])):
+                    del self.strandCrvList[l][o]
+                    
+            lsObj = cmds.textScrollList(self._ui['CrvScrollListCtrlA'], q=1, ai=1)
+            for i in lsObj:
+                objSplit = i.split('_')
+                if objSplit[2][-1] == 'L':
+                    self.strandCrvList[0].extend([i])
+                if objSplit[2][-1] == 'R':
+                    self.strandCrvList[1].extend([i])
+        else:        
+            for i in lsObj:
+                objSplit = i.split('_')
+                if objSplit[2][-1] == 'L':
+                    self.strandCrvList[0].extend([i])
+                if objSplit[2][-1] == 'R':
+                    self.strandCrvList[1].extend([i])
+                    
+    def sortObjectListFromUI(self,*args):
+        objName = cmds.textFieldGrp(self._ui['BaseSkltnInfoTxt'], q=True, tx=True)
+        self.objectName.extend([objName])
+        strandConstGpTemp = [[objName+'A_jtConstGp_L', objName+'B_jtConstGp_L', objName+'C_jtConstGp_L', objName+'D_jtConstGp_L', objName+'E_jtConstGp_L'],
+                                [objName+'A_jtConstGp_R', objName+'B_jtConstGp_R', objName+'C_jtConstGp_R', objName+'D_jtConstGp_R', objName+'E_jtConstGp_R']]
+        strandCancelGpTemp = [[objName+'A_jtCancelGp_L', objName+'B_jtCancelGp_L', objName+'C_jtCancelGp_L', objName+'D_jtCancelGp_L', objName+'E_jtCancelGp_L'],
+                                [objName+'A_jtCancelGp_R', objName+'B_jtCancelGp_R', objName+'C_jtCancelGp_R', objName+'D_jtCancelGp_R', objName+'E_jtCancelGp_R']]
+        for i in range(len(strandConstGpTemp)):
+            for o in range(len(strandConstGpTemp[i])):
+                if i == 0:
+                    self.strandConstGpList[0].extend([strandConstGpTemp[i][o]])
+                else:
+                    self.strandConstGpList[1].extend([strandConstGpTemp[i][o]])
+                    
+        for s in range(len(strandCancelGpTemp)):
+            for p in range(len(strandCancelGpTemp[s])):
+                if s == 0:
+                    self.strandCancelGpList[0].extend([strandCancelGpTemp[s][p]])
+                else:
+                    self.strandCancelGpList[1].extend([strandCancelGpTemp[s][p]])
+    def appendParentSel(self,*args):
+        slObj = cmds.ls(sl=True)
+        cmds.textFieldButtonGrp(self._ui['BaseSkltnInfoBtnB'], e=True, tx=slObj[0])              
+
+    def sortPBSlistFromUI(self,*args):          
+        pbs = cmds.textFieldButtonGrp(self._ui['BaseSkltnInfoBtnB'], q=True, tx=True)
+        self.parentBSkeleton.extend([pbs])
+        bgn = cmds.textFieldGrp(self._ui['BaseSkltnInfoTxtA'], q=True, tx=True)
+        self.overRname.extend([bgn])
+        id = bgn[0].title() + bgn[1:]
+        self.identif.extend([id])
+    
+    def getUserConstraintSettings(self):
+        userEnabled = cmds.checkBoxGrp(self._ui['srfConstEnable'], q=1, v1=1)
+        if userEnabled == 1:
+            for i in range(len(self.constraintAxis)):
+                del self.constraintAxis[i][:]
+            fkAL = cmds.floatFieldGrp(self._ui['AxisInfoFieldGrpA'], q=1, v=1)
+            fkUL = cmds.floatFieldGrp(self._ui['AxisInfoFieldGrpB'], q=1, v=1)
+            fkAR = cmds.floatFieldGrp(self._ui['AxisInfoFieldGrpC'], q=1, v=1)
+            fkUR = cmds.floatFieldGrp(self._ui['AxisInfoFieldGrpD'], q=1, v=1)
+            ikAL = cmds.floatFieldGrp(self._ui['AxisInfoFieldGrpE'], q=1, v=1)
+            ikUL = cmds.floatFieldGrp(self._ui['AxisInfoFieldGrpF'], q=1, v=1)
+            ikAR = cmds.floatFieldGrp(self._ui['AxisInfoFieldGrpG'], q=1, v=1)
+            ikUR = cmds.floatFieldGrp(self._ui['AxisInfoFieldGrpH'], q=1, v=1)
+            self.constraintAxis[0].extend(fkAL)
+            self.constraintAxis[0].extend(fkUL)
+            self.constraintAxis[0].extend(ikAL)
+            self.constraintAxis[0].extend(ikUL)
+            self.constraintAxis[1].extend(fkAR)
+            self.constraintAxis[1].extend(fkUR)
+            self.constraintAxis[1].extend(ikAR)
+            self.constraintAxis[1].extend(ikUR)
+
+        else:
+            pass
+        
+    def strandScript(self,*args):
+        self.getUserConstraintSettings()
+        self.sortFKListFromUI()
+        self.sortIKListFromUI()
+        self.sortCrvListFromUI()
+        self.sortSrfListFromUI()
+        self.sortObjectListFromUI()
+        self.sortPBSlistFromUI()
+        lib.fixCheckAxis(self.constraintAxis,self.objectName, self.strandJtFkList)
+        lib.makeSpaceConstCancelFkJnt(self.objectName, self.strandJtFkList, self.strandJtFkSpaceList)
+        lib.makingCancelConstGp(self.objectName, self.strandConstGpList, self.strandCancelGpList)
+        lib.sortingCancelConstJoints(self.objectName, self.strandConstList, self.strandCancelList)
+        lib.makeSpaceIkJnt(self.objectName, self.strandJtIkList)
+        lib.createBaseSkltn(self.identif,self.overRname)
+        lib.addBaseSkltn(self.identif, self.objectName, self.parentBSkeleton)
+
+        lib.registerPassive(self.identif, self.strandJtIkSpaceList, self.strandJtFkSpaceList)
+        lib.registerTransform(self.identif, self.strandJtIkList, self.strandJtFkList)
+        lib.makeBindSkeleton(self.identif)
+        lib.makeSurfaces(self.objectName,self.strandIkSrfList, self.strandSrfList)
+        lib.sortBindSkeleton(self.objectName, self.strandIfFkSpaceList, self.strandIfIkSpaceList, self.strandIfFkList, self.strandIfIkList)
+        lib.ifSpaceIKConst(self.constraintAxis, self.strandIfIkSpaceList, self.strandIfIkList)
+        lib.smoothBindIkSrf(self.strandIfIkList)
+        lib.jtConstConst(self.constraintAxis, self.objectName,self.strandConstList)
+        lib.jtCancelConst(self.constraintAxis, self.objectName, self.strandCancelList)
+        lib.joZeroSpaceFk(self.strandIfFkSpaceList)
+        lib.matrixConstSpace(self.strandConstList, self.strandIfFkSpaceList, self.strandIfFkList, self.strandCancelList)
+
+UI()
