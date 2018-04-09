@@ -1,0 +1,387 @@
+
+import maya.cmds as cmds
+import eST.tools.elementConstructor
+import eST.tools.setup_gui
+
+import fakeTools.tools.weightUtility
+from fakeTools.lib import weight
+
+###########################################################################################################################################                   
+###############################################  CREATING CANCEL AND CONSTRAINT JOINTS FOR FUTURE SETUP  ##################################
+###########################################################################################################################################
+
+def fixCheckAxis(constraintAxis,objectName, strandJtFkList):
+    fkGp = objectName[0]+'_jtFkGp'
+    for i in range(len(strandJtFkList)):
+        for o in range(len(strandJtFkList[i])):
+            split = strandJtFkList[i][o].split('_')
+            if split[2] == 'AL' or split[2] == 'AR':
+                pass
+            else:
+                cmds.parent(strandJtFkList[i][o], fkGp)
+            if i == 0:
+                sideReplace = split[2].replace(split[2], 'L')
+            if i==1:
+                sideReplace = split[2].replace(split[2], 'R')   
+            cmds.select(split[0]+'_crv_'+sideReplace,strandJtFkList[i][o], r=1)
+            if i ==1:
+                eST.tools.setup.setupCurvePointsConstraint.setupCurvePointsConstraint(aa=True,uv=constraintAxis[i][1], ut='surfaceNormal', l=True, s=split[0]+'_srf_'+sideReplace, r=True, at='next', av=constraintAxis[i][0], op=True)
+            if i ==0:
+                eST.tools.setup.setupCurvePointsConstraint.setupCurvePointsConstraint(aa=True,uv=constraintAxis[i][1], ut='surfaceNormal', l=True, s=split[0]+'_srf_'+sideReplace, r=True, at='next', av=constraintAxis[i][0], op=True)
+            nodeConnection = cmds.listConnections(strandJtFkList[i][o], p=True, d=False)
+            for s in range(len(nodeConnection)):
+                nodeSplit = nodeConnection[s].split(".")
+                if nodeSplit[-1] == 'inverseScale':
+                    pass
+                else:
+                    nodeConstCon = cmds.listConnections(nodeConnection[s], p=True)
+                    cmds.disconnectAttr(nodeConnection[s], nodeConstCon[0])
+                    
+            cmds.makeIdentity(strandJtFkList[i][o], apply=1, t=0, r=1, s=0, n=0, pn=1)
+            if split[2] == 'AL' or split[2] == 'AR':
+                pass
+            else:
+                cmds.parent(strandJtFkList[i][o], strandJtFkList[i][o-1])
+                              
+def makeSpaceConstCancelFkJnt(objectName, strandJtFkList, strandJtFkSpaceList):
+    fkGp = objectName[0]+'_jtFkGp'
+    spaceFkName = ['_jtSpaceFk_']
+    constName = ['_jtConst_']
+    cancelName = ['_jtCancel_']
+    for i in range(len(strandJtFkList)):
+        for o in range(len(strandJtFkList[i])):
+            cmds.select(strandJtFkList[i][o], r=True)
+            jtNameSplit = strandJtFkList[i][o].split('_')
+            jtSpaceName = jtNameSplit[0]+spaceFkName[0]+jtNameSplit[2]
+            jtCancelName = jtNameSplit[0]+cancelName[0]+jtNameSplit[2]
+            jtConstName = jtNameSplit[0]+constName[0]+jtNameSplit[2]
+            strandJtFkSpaceList[i].extend([jtSpaceName])
+            ###strandConstList[i].extend([jtConstName])
+            ###strandCancelList[i].extend([jtCancelName])
+            jtSpace = cmds.joint(n=jtSpaceName)
+            jtCancel = cmds.joint(n=jtConstName)
+            jtConst = cmds.joint(n=jtCancelName)
+            cmds.parent(jtSpace, fkGp)
+            cmds.parent(strandJtFkList[i][o],jtSpace)
+            
+    for s in range(len(strandJtFkList)):
+        for p in range(len(strandJtFkList[s])):
+            tempSplit = strandJtFkSpaceList[s][p].split('_')
+            if tempSplit[2] == 'AL' or tempSplit[2] == 'AR':
+                pass
+            else:
+                cmds.parent(strandJtFkSpaceList[s][p], strandJtFkList[s][p-1])
+        
+
+
+##########################################################################################################################################                
+##############################################  MAKING GROUPS FOR CANCEL AND CONSTRAINT JOINTS  ##########################################
+##############################################                 JUST FOR CLARITY                 ##########################################
+##########################################################################################################################################
+def makingCancelConstGp(objectName, strandConstGpList, strandCancelGpList):
+    cancelGp = objectName[0]+'_jtCancelGp'
+    constGp = objectName[0]+'_jtConstGp'
+    jtCancelGp = cmds.group(em=True, n=cancelGp)
+    jtConstGp = cmds.group(em=True, n=constGp)
+    for i in range(len(strandConstGpList)):
+        for o in range(len(strandConstGpList[i])):
+            cmds.group(em=True, n=strandConstGpList[i][o], p=jtConstGp)
+            cmds.group(em=True, n=strandCancelGpList[i][o], p=jtCancelGp)
+###########################################################################################################################################
+##############################  PARENTING CANCEL AND CONSTRAINT JOINTS UNDER THEIR CORRESPONDING GROUP  ###################################
+###########################################################################################################################################          
+def sortingCancelConstJoints(objectName, strandConstList, strandCancelList):
+    tempA = cmds.ls('*_jtConst_*') 
+    for d in range(len(tempA)):
+        splitTemp = tempA[d].split('_')
+        if splitTemp[2][-1] == 'L':
+            strandConstList[0].extend([tempA[d]])
+        else:
+            strandConstList[1].extend([tempA[d]])
+
+    tempB = cmds.ls('*_jtCancel_*')
+    for k in range(len(tempB)):
+        splitTemp = tempB[k].split('_')           
+        if splitTemp[2][-1] == 'L':
+            strandCancelList[0].extend([tempB[k]])
+        else:
+            strandCancelList[1].extend([tempB[k]])
+                
+    constGp = objectName[0]+'_jtConstGp'
+    cancelGp = objectName[0]+'_jtCancelGp'
+    for i in range(len(strandConstList)):
+        for obj in strandConstList[i]:
+            constObjSplit = obj.split('_')
+            if i == 0:
+                parent_constObjSub = constObjSplit[2].replace(constObjSplit[2], '_L')
+            if i == 1:
+                parent_constObjSub = constObjSplit[2].replace(constObjSplit[2], '_R')
+            parent_constObj = constObjSplit[0] + '_jtConstGp' + parent_constObjSub
+            cmds.parent(obj, parent_constObj)
+    
+    for i in range(len(strandCancelList)):
+        for obj in strandCancelList[i]:
+            cancelObjSplit = obj.split('_')
+            if i == 0:
+                parent_cancelObjSub = cancelObjSplit[2].replace(cancelObjSplit[2], '_L')
+            if i == 1:
+                parent_cancelObjSub = cancelObjSplit[2].replace(cancelObjSplit[2], '_R')
+            parent_cancelObj = cancelObjSplit[0] + '_jtCancelGp' + parent_cancelObjSub
+            cmds.parent(obj, parent_cancelObj)
+###########################################################################################################################################            
+################################  MAKING IK SPACE GROUP FOR FUTURE CONSTRAINS FROM CURVE  #################################################
+###########################################################################################################################################               
+def makeSpaceIkJnt(objectName, strandJtIkList):
+    ikGp = objectName[0]+'_jtIkGp'
+    spaceIkName = ['_jtSpaceIk_']
+    for i in range(len(strandJtIkList)):
+        for o in range(len(strandJtIkList[i])):
+            jtNameSplit = strandJtIkList[i][o].split('_')
+            jtSpaceName = jtNameSplit[0]+spaceIkName[0]+jtNameSplit[2]
+            ikSpaceGp = cmds.group(em=True, n=jtSpaceName, p=ikGp)
+            cmds.setAttr(strandJtIkList[i][o]+'.jointOrient', 0, 0, 0, type='double3')
+            jntPos = cmds.xform(strandJtIkList[i][o], rp=True, ws=True, q=True)
+            cmds.xform(ikSpaceGp, t=jntPos)
+            cmds.parent(strandJtIkList[i][o], ikSpaceGp)
+            #strandJtIkSpaceList[i].extend([jtSpaceName])
+            cmds.select(d=True)
+###########################################################################################################################################            
+###########################################  CREATING BASE SKELETON(MAKING UNIT) ##########################################################
+###########################################################################################################################################
+def createBaseSkltn(identif,overRname):
+    eST.tools.elementConstructor.compute_createBaseSkeleton(parent='', side='none', prefix=u':', identifier=identif[0], overrideName=overRname[0], unit=u'user')
+###########################################################################################################################################
+#########################################  ADDING JOINTS TO BASE SKELETON(UNIT)  ##########################################################
+###########################################################################################################################################
+def addBaseSkltn(identif, objectName, parentBSkeleton):
+    mainGp = objectName[0]+'_jtGp'
+    eST.callUnitUtility(identifier=identif[0], unit='user', utility='addBaseSkeletons', objs= mainGp, parentBaseSkeleton = parentBSkeleton[0])
+    cmds.select(d=True)
+###########################################################################################################################################
+####################################  REGISTERING SPACE JOINTS OF FK AND IK AS PASSIVE SKELETON  ########################################## 
+###########################################################################################################################################
+def registerPassive(identif, strandJtIkSpaceList, strandJtFkSpaceList):
+    temp = cmds.ls('*_jtSpaceIk_*')
+    for o in range(len(temp)):
+        splitTemp = temp[o].split('_')
+        if splitTemp[2][-1] == 'L':
+            strandJtIkSpaceList[0].extend([temp[o]])
+        else:
+            strandJtIkSpaceList[1].extend([temp[o]])
+    for i in range(len(strandJtIkSpaceList)):
+        eST.callUnitUtility(bases=strandJtIkSpaceList[i], passive=True, attrs=[u'tx', u'ty', u'tz', u'rx', u'ry', u'rz'], identifier=identif[0], unit='user', utility='editBaseSkeletons')
+    for f in range(len(strandJtFkSpaceList)):
+        eST.callUnitUtility(bases=strandJtFkSpaceList[f], passive=True, attrs=[u'tx', u'ty', u'tz', u'rx', u'ry', u'rz'], identifier=identif[0], unit='user', utility='editBaseSkeletons')
+###########################################################################################################################################
+#################################################  REGISTERING OTHER JOINTS TO ANIM PLUG ##################################################
+###########################################################################################################################################
+def registerTransform(identif, strandJtIkList, strandJtFkList):
+    for i in range(len(strandJtIkList)):
+        eST.callUnitUtility(bases=strandJtIkList[i], attrs=[u'tx', u'ty', u'tz', u'rx', u'ry', u'rz', u'sx', u'sy', u'sz'], identifier=identif[0], unit='user', utility='editBaseSkeletons')
+    for i in range(len(strandJtFkList)):
+        eST.callUnitUtility(bases=strandJtFkList[i], attrs=[u'tx', u'ty', u'tz', u'rx', u'ry', u'rz', u'sx', u'sy', u'sz'], identifier=identif[0], unit='user', utility='editBaseSkeletons')                                                            
+###########################################################################################################################################
+################################################ MAKING BIND SKELETON #####################################################################
+###########################################################################################################################################
+def makeBindSkeleton(identif):
+    eST.tools.elementConstructor.compute_createBindSkeleton(unitOptions={u':user':{'customData': {}, 'type': '_minimal', 'creationMode': u'normal'}}, prefix=':', identifier=identif[0], unit='user')
+###########################################################################################################################################
+###################################  MAKING IK SURFACES WHICH WILL BE BINDED TO IK JOINTS  ################################################
+###########################################################################################################################################
+def makeSurfaces(objectName, strandIkSrfList, strandSrfList):
+    bindGeo = objectName[0]+'_bindGeo'
+    for i in range(len(strandSrfList)):
+        weight.copyWeightWithBind(bindGeo, dest=strandSrfList[i], uvSpace=False)
+        for o in range(len(strandSrfList[i])):
+            dupSrf = cmds.duplicate(strandSrfList[i][o])
+            dupSrfNameSplit = dupSrf[0].split('_')
+            if dupSrfNameSplit[2] == 'R1':
+                ikSrf = cmds.rename(dupSrf[0], dupSrfNameSplit[0]+'_IkSrf_R')
+                strandIkSrfList[1].extend([ikSrf])
+            else: 
+                ikSrf = cmds.rename(dupSrf[0], dupSrfNameSplit[0]+'_IkSrf_L')
+                strandIkSrfList[0].extend([ikSrf])
+############################################################################################################################################
+######################################### ADDING TO LISTS SPACE JOINTS AND SORTING THEM ####################################################
+############################################################################################################################################   
+def sortBindSkeleton(objectName, strandIfFkSpaceList, strandIfIkSpaceList, strandIfFkList, strandIfIkList):
+    srfGpL = objectName[0]+'_srfGp_L'
+    srfGpR = objectName[0]+'_srfGp_R'
+    crvGpL = objectName[0]+'_crvGp_L'
+    crvGpR = objectName[0]+'_crvGp_R'
+    cancelGp = objectName[0]+'_jtCancelGp'
+    constGp = objectName[0]+'_jtConstGp'
+    extraSetup = objectName[0]+'ExtraSetup_gp'
+    extraSpGp = cmds.group(cancelGp, constGp, srfGpL, srfGpR, crvGpL, crvGpR, n= extraSetup)
+    cmds.parent(extraSpGp, 'bindSkeleton_gp')
+    strandIfFkSel_L = cmds.ls(objectName[0]+'*_ifFk_*L')  
+    strandIfIkSel_L = cmds.ls(objectName[0]+'*_ifIk_*L')
+    strandIfFkSel_R = cmds.ls(objectName[0]+'*_ifFk_*R')  
+    strandIfIkSel_R = cmds.ls(objectName[0]+'*_ifIk_*R')
+
+    strandIfSpaceFkSel_L = cmds.ls(objectName[0]+'*_ifSpaceFk_*L')  
+    strandIfSpaceIkSel_L = cmds.ls(objectName[0]+'*_ifSpaceIk_*L')
+    strandIfSpaceFkSel_R = cmds.ls(objectName[0]+'*_ifSpaceFk_*R')  
+    strandIfSpaceIkSel_R = cmds.ls(objectName[0]+'*_ifSpaceIk_*R')
+
+    strandIfFkSpaceList[0].extend(strandIfSpaceFkSel_L)
+
+    strandIfFkSpaceList[1].extend(strandIfSpaceFkSel_R)
+
+    strandIfIkSpaceList[0].extend(strandIfSpaceIkSel_L)
+
+    strandIfIkSpaceList[1].extend(strandIfSpaceIkSel_R)
+
+    strandIfFkList[0].extend(strandIfFkSel_L)
+
+    strandIfFkList[1].extend(strandIfFkSel_R)
+
+    strandIfIkList[0].extend(strandIfIkSel_L)
+
+    strandIfIkList[1].extend(strandIfIkSel_R)
+
+
+    for i in range(len(strandIfIkSpaceList)):
+        for o in range(len(strandIfIkSpaceList[i])):
+            cmds.xform(strandIfIkSpaceList[i][o], cp=True)
+##########################################################################################################################################
+############################################### CURVE CONSTRAINING SPACE IK TRANSFORMS ###################################################
+##########################################################################################################################################            
+def ifSpaceIKConst(constraintAxis, strandIfIkSpaceList, strandIfIkList):
+    for i in range(len(strandIfIkSpaceList)):
+        for o in range(len(strandIfIkSpaceList[i])):
+            objSplit = strandIfIkList[i][o].split('_')
+            if i == 0:
+                objNameReplace= objSplit[2].replace(objSplit[2], 'L')
+            if i == 1:
+                objNameReplace= objSplit[2].replace(objSplit[2], 'R')
+            cmds.select(objSplit[0]+'_crv_'+objNameReplace, strandIfIkSpaceList[i][o], r=True)
+            if i ==1:
+                eST.tools.setup.setupCurvePointsConstraint.setupCurvePointsConstraint(aa=True,uv=constraintAxis[i][3], ut='surfaceNormal', l=True, s=objSplit[0]+'_srf_'+objNameReplace, r=True, at='next', av=constraintAxis[i][2], op=True)
+            if i ==0:
+                eST.tools.setup.setupCurvePointsConstraint.setupCurvePointsConstraint(aa=True,uv=constraintAxis[i][3], ut='surfaceNormal', l=True, s=objSplit[0]+'_srf_'+objNameReplace, r=True, at='next', av=constraintAxis[i][2], op=True)
+##########################################################################################################################################
+######################################  SMOOTH BINDING AND COPYING WEIGHTS TO SURFACES  ##################################################
+##########################################################################################################################################  
+def smoothBindIkSrf(strandIfIkList):
+    for i in range(len(strandIfIkList)):
+        for o in range(len(strandIfIkList[i])):
+            objSplit = strandIfIkList[i][o].split('_')
+            if i == 0:
+                objNameReplace= objSplit[2].replace(objSplit[2], 'L')
+            if i == 1:
+                objNameReplace= objSplit[2].replace(objSplit[2], 'R')
+            nodeConnection = cmds.listConnections(objSplit[0]+'_IkSrf_'+objNameReplace+'.create', s=True)
+            if not nodeConnection:
+                cmds.skinCluster('static_if', objSplit[0]+'_IkSrf_'+objNameReplace)
+            nodeConnection = cmds.listConnections(objSplit[0]+'_IkSrf_'+objNameReplace+'.create', s=True)
+            cmds.skinCluster(nodeConnection[0], e=True, ug=True, dr=10, ps=0, ns=10, lw=True, wt=0, bsh=objSplit[0]+'_IkSrf_'+objNameReplace+'Shape', ai=strandIfIkList[i][o])
+##########################################################################################################################################
+########################################### CURVE CONSTRAINING  ALL CONSTRAINT JOINTS ####################################################
+##########################################################################################################################################            
+def jtConstConst(constraintAxis, objectName, strandConstList):
+    """
+    tempA = cmds.ls('*_jtConst_*')
+    for d in range(len(tempA)):
+        splitTemp = tempA[d].split('_')
+        if splitTemp[2][-1] == 'L':
+            strandConstList[0].extend([tempA[d]])
+        else:
+            strandConstList[1].extend([tempA[d]])
+
+    tempB = cmds.ls('*_jtCancel_*')
+    for k in range(len(tempB)):
+        splitTemp = tempA[k].split('_')
+        if splitTemp[2][-1] == 'L':
+            strandCancelList[0].extend([tempB[k]])
+        else:
+            strandCancelList[1].extend([tempB[k]])
+    """
+    for i in range(len(strandConstList)):
+        for o in range(len(strandConstList[i])):
+            objSplit = strandConstList[i][o].split('_')
+            if i == 0:
+                objNameReplace= objSplit[2].replace(objSplit[2], 'L')
+            if i == 1:
+                objNameReplace= objSplit[2].replace(objSplit[2], 'R')
+            cmds.select(objSplit[0]+'_crv_'+objNameReplace, strandConstList[i][o], r=True)
+            if i == 0:
+                eST.tools.setup.setupCurvePointsConstraint.setupCurvePointsConstraint(aa=True,uv=constraintAxis[i][1], ut='surfaceNormal', l=True, s=objSplit[0]+'_srf_'+objNameReplace, r=True, at='next', av=constraintAxis[i][0], op=True)
+            if i==1:
+                eST.tools.setup.setupCurvePointsConstraint.setupCurvePointsConstraint(aa=True,uv=constraintAxis[i][1], ut='surfaceNormal', l=True, s=objSplit[0]+'_srf_'+objNameReplace, r=True, at='next', av=constraintAxis[i][0], op=True)
+##########################################################################################################################################
+################################################## CURVE CONSTRAINING ALL CANCEL JOINTS ##################################################
+##########################################################################################################################################
+def jtCancelConst(constraintAxis,objectName, strandCancelList):
+    for i in range(len(strandCancelList)):
+        for o in range(len(strandCancelList[i])):
+            objSplit = strandCancelList[i][o].split('_')
+            if i == 0:
+                objNameReplace= objSplit[2].replace(objSplit[2], 'L')
+            if i == 1:
+                objNameReplace= objSplit[2].replace(objSplit[2], 'R')
+            cmds.select(objSplit[0]+'_crv_'+objNameReplace, strandCancelList[i][o], r=True)
+            if i == 0:
+                    eST.tools.setup.setupCurvePointsConstraint.setupCurvePointsConstraint(aa=True,uv=constraintAxis[i][1], ut='surfaceNormal', l=True, s=objSplit[0]+'_srf_'+objNameReplace, r=True, at='next', av=constraintAxis[i][0], op=True)
+            if i==1:
+                eST.tools.setup.setupCurvePointsConstraint.setupCurvePointsConstraint(aa=True,uv=constraintAxis[i][1], ut='surfaceNormal', l=True, s=objSplit[0]+'_srf_'+objNameReplace, r=True, at='next', av=constraintAxis[i][0], op=True)
+##########################################################################################################################################
+##########################  CLEANING UP JOINT ORIENTATION OF SPACE FK JOINTS FOR FUTURE MATRIX CONSTRAINT  ###############################
+##########################################################################################################################################                    
+def joZeroSpaceFk(strandIfFkSpaceList):
+    for s in range(len(strandIfFkSpaceList)):
+        for p in range(len(strandIfFkSpaceList[s])):
+            objSplit = strandIfFkSpaceList[s][p].split('_')
+            if objSplit[2] == 'AL' or objSplit[2] == 'AR':
+                pass
+            else:
+                cmds.parent(strandIfFkSpaceList[s][p], w=True)
+                
+    for i in range(len(strandIfFkSpaceList)):
+        for o in range(len(strandIfFkSpaceList[i])):
+            objSplit = strandIfFkSpaceList[i][o].split('_')
+            if objSplit[2] == 'AL' or objSplit[2] == 'AR':
+                pass
+            else:
+                cmds.setAttr(strandIfFkSpaceList[i][o]+'.jointOrient', 0, 0, 0, type='double3')
+##########################################################################################################################################                
+#########################  CONSTRAINING FK SPACE JOINTS WITH DECOMPOSE MATRIX FROM CONSTRAINT JOINTS  ####################################               
+##########################################################################################################################################
+def matrixConstSpace(strandConstList, strandIfFkSpaceList, strandIfFkList, strantCancelList):
+
+    for i in range(len(strandConstList)):
+        for o in range(len(strandConstList[i])):
+            objSplit = objSplit = strandConstList[i][o].split('_')               
+            if objSplit[2] == 'AL' or objSplit[2] == 'AR':
+                cmds.connectAttr(strandConstList[i][o] + '.translate', strandIfFkSpaceList[i][o] + '.translate')
+                cmds.connectAttr(strandConstList[i][o] + '.rotate', strandIfFkSpaceList[i][o] + '.rotate')
+            else: 
+                mMatrix = cmds.createNode('multMatrix', n= objSplit[0] + '_multMat_' + objSplit[2])
+                mMatrix = cmds.createNode('decomposeMatrix', n= objSplit[0] + '_decompMat_' + objSplit[2])
+
+    for s in range(len(strandConstList)):
+        for p in range(len(strandConstList[s])):
+            objSplit = strandConstList[s][p].split('_')
+            if objSplit[2] == 'AL' or objSplit[2] == 'AR':
+                pass
+            else:
+                cmds.connectAttr(strandConstList[s][p] + '.matrix', objSplit[0] + '_multMat_' + objSplit[2] + '.matrixIn[0]')
+                cmds.connectAttr(strandConstList[s][p-1] + '.inverseMatrix', objSplit[0] +'_multMat_'+ objSplit[2] + '.matrixIn[1]')
+                cmds.connectAttr(objSplit[0] + '_multMat_' + objSplit[2] + '.matrixSum', objSplit[0] + '_decompMat_' + objSplit[2] + '.inputMatrix')
+                cmds.connectAttr(objSplit[0] + '_decompMat_' + objSplit[2] + '.outputRotate', strandIfFkSpaceList[s][p] + '.rotate')
+                cmds.connectAttr(objSplit[0] + '_decompMat_' + objSplit[2] + '.outputTranslate', strandIfFkSpaceList[s][p] + '.translate')
+                cmds.parent(strandIfFkSpaceList[s][p], strandIfFkList[s][p-1])
+                cmds.setAttr(strandIfFkSpaceList[s][p]+'.jointOrient', 0, 0, 0, type='double3')
+##########################################################################################################################################                
+#####################################  CONNECTING CANCEL JOINTS TO BIND PRE MATRIX OF SKINCLUSTER  #######################################               
+##########################################################################################################################################                            
+def bindPreMatrix(strandIfFkList, strandCancelList):
+    for i in range(len(strandIfFkList)):
+        for o in range(len(strandIfFkList[i])):
+            matConnectNumInfo = cmds.listConnections(strandIfFkList[i][o]+".worldMatrix", p=True)
+            if not matConnectNumInfo:
+                pass  
+            else:
+                matConnectInfo = cmds.listConnections(strandIfFkList[i][o]+".worldMatrix", s=True)
+                result = re.findall( '(\d+)', matConnectNumInfo[0])
+                cmds.connectAttr(strandCancelList[i][o]+".inverseMatrix", matConnectInfo[0]+".bindPreMatrix[{}]".format(result[1]))           
