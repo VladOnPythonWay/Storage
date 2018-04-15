@@ -26,7 +26,7 @@ def constraintMaster_UI():
     parent = getMayaWindow()
     window = QtWidgets.QMainWindow(parent)
     window.setObjectName(objectName)
-    window.setWindowTitle('Constraint Master')
+    window.setWindowTitle('Riga Orient Master')
 
     # create main widget
     mainWidget = QtWidgets.QWidget()
@@ -34,7 +34,6 @@ def constraintMaster_UI():
     QtWidgets.QStyleFactory.create('Windows')
     # Create our main vertical layout
     verticalLayout = QtWidgets.QVBoxLayout(mainWidget)
-    window.setStyleSheet('background-color:rgb(0,51,102)')
     # create operate option radio button
     operateLayout = QtWidgets.QHBoxLayout()
     verticalLayout.addLayout(operateLayout)
@@ -44,62 +43,66 @@ def constraintMaster_UI():
     # create operate radio buttons
     operateSelectionButton = QtWidgets.QRadioButton('Selection')
     operateLayout.addWidget(operateSelectionButton)
-    
+
     operateHierarchyButton = QtWidgets.QRadioButton('Hierarchy')
     operateLayout.addWidget(operateHierarchyButton)
-    # create the aim layout
+    # create the aim vector layout
+    aimGroupBox = QtWidgets.QGroupBox('Aim Vector:')
     aimLayout = QtWidgets.QHBoxLayout()
-    verticalLayout.addLayout(aimLayout)
-
-    # create aim label
-    aimLabel = QtWidgets.QLabel('Aim Vector:')
-    aimLayout.addWidget(aimLabel)
-    # create aim buttons 
+    verticalLayout.addWidget(aimGroupBox)
+    aimGroupBox.setLayout(aimLayout)
+    # create aim vector buttons
     axCheckBotton = QtWidgets.QPushButton('X')
     axCheckBotton.isCheckable()
     axCheckBotton.setCheckable(True)
+    axCheckBotton.setAutoExclusive(True)
     aimLayout.addWidget(axCheckBotton)
-    axCheckBotton.setStyleSheet('background-color:rgb(23,85,146)')
-
+        
     ayCheckBotton = QtWidgets.QPushButton('Y')
+    ayCheckBotton.isCheckable()
     ayCheckBotton.setCheckable(True)
+    ayCheckBotton.setAutoExclusive(True)
     aimLayout.addWidget(ayCheckBotton)
-    ayCheckBotton.setStyleSheet('background-color:rgb(23,85,146)')
 
     azCheckBotton = QtWidgets.QPushButton('Z')
     azCheckBotton.setCheckable(True)
+    azCheckBotton.isCheckable()
+    azCheckBotton.setAutoExclusive(True)
     aimLayout.addWidget(azCheckBotton)
-    azCheckBotton.setStyleSheet('background-color:rgb(23,85,146)')
-    # create the up layout
+    # create the up vector layout
+    upGroupBox = QtWidgets.QGroupBox('Up Vector:')
+    verticalLayout.addWidget(upGroupBox)
     upLayout = QtWidgets.QHBoxLayout()
-    verticalLayout.addLayout(upLayout)
+    upGroupBox.setLayout(upLayout)
 
-    # create up label
-    upLabel = QtWidgets.QLabel('Up Vector:')
-    upLayout.addWidget(upLabel)
-    # create up buttons 
+    # create up vector buttons
     uxCheckBotton = QtWidgets.QPushButton('X')
+    uxCheckBotton.setAutoExclusive(True)
     uxCheckBotton.isCheckable()
     uxCheckBotton.setCheckable(True)
     upLayout.addWidget(uxCheckBotton)
-    uxCheckBotton.setStyleSheet('background-color:rgb(23,85,146)')
 
     uyCheckBotton = QtWidgets.QPushButton('Y')
+    uyCheckBotton.setAutoExclusive(True)
     uyCheckBotton.setCheckable(True)
     upLayout.addWidget(uyCheckBotton)
-    uyCheckBotton.setStyleSheet('background-color:rgb(23,85,146)')
 
     uzCheckBotton = QtWidgets.QPushButton('Z')
     uzCheckBotton.setCheckable(True)
+    uzCheckBotton.setAutoExclusive(True)
     upLayout.addWidget(uzCheckBotton)
-    uzCheckBotton.setStyleSheet('background-color:rgb(23,85,146)')
-
 
     # create button
-    button = QtWidgets.QPushButton('Create Constraint')
+    button = QtWidgets.QPushButton('Orient Joints')
     verticalLayout.addWidget(button)
-    button.setStyleSheet('background-color: rgb(23,85,146)')
-
+    button.isChecked()
+    button.setStyleSheet('background-color: rgb(120, 120, 100); color:rgb(1, 255, 255);border: none')
+    def buttonReleased():
+        button.setStyleSheet('background-color: rgb(120, 120, 100); color:rgb(1, 255, 255);border: none')
+    def buttonPushed():
+        button.setStyleSheet('background-color: rgb(200, 120, 100); color:rgb(1, 255, 255);border: none')
+    button.pressed.connect(buttonPushed)
+    button.released.connect(buttonReleased)
     # show the window
     window.show()
 
