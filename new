@@ -1,0 +1,374 @@
+import maya.cmds as cmds
+from functools import partial
+
+class AR_OptionsWindow(object):
+    def showUI(cls):
+        win = cls()
+        win.create()
+        return win
+    def __init__(self):
+        self.window = 'ar_optionsWindow'
+        self.title = 'OptionsWindow'
+        self.size = (1000,650)
+        self.supportsToolAction = False
+        self.actionName = 'Create and Close'
+        self.applyName = 'Create'
+        self.closeName = 'Close'
+        
+    def create(self):
+        if cmds.window(self.window, exists= True):
+            cmds.deleteUI(self.window ,window= True)
+        self.window = cmds.window(self.window, title= self.title, widthHeight= self.size, menuBar= True)
+        self.mainFormLayout = cmds.formLayout(nd=100)
+        self.ui_commonMenuCmd()
+        self.ui_commonButtonsCmd()
+        self.ui_hairListCmd()
+        cmds.showWindow()
+        
+    def ui_commonMenuCmd(self):
+        self.editMenu = cmds.menu(label= 'Edit')
+        
+        self.editMenuSave = cmds.menuItem(label= 'Save Settings', command= self.ui_editMenuSaveCmd)
+        self.editMenuReset = cmds.menuItem(label= 'Reset Settings', command= self.ui_editMenuResetCmd)
+        
+        self.editMenuDiv = cmds.menuItem(d= True)
+        self.editMenuRadio = cmds.radioMenuItemCollection()
+        
+        self.editMenuTool = cmds.menuItem(label= 'As Tool', radioButton= True, enable= self.supportsToolAction, command= self.ui_editMenuToolCmd)
+        self.editMenuAction = cmds.menuItem(label= 'As Action', radioButton= True, enable= self.supportsToolAction, command= self.ui_editMenuActionCmd)
+        
+        self.helpMenu = cmds.menu('Help')
+        self.helpMenuItem = cmds.menuItem(label= 'Help on {0}'.format(self.title), command= self.ui_helpMenuCmd)
+
+    def ui_commonButtonsCmd(self):
+        self.commonBtnSize = ((self.size[0]-18)/3, 26)
+        self.actionBtn = cmds.button(label=self.actionName, height=self.commonBtnSize[1], command=self.ui_actionBtnCmd)
+        self.applyBtn = cmds.button(label=self.applyName, height=self.commonBtnSize[1], command=self.ui_applyBtnCmd)
+        self.closeBtn = cmds.button(label=self.closeName, height=self.commonBtnSize[1], command=self.ui_closeBtnCmd)
+        cmds.formLayout(self.mainFormLayout, e= True,
+                            attachForm = ([self.actionBtn, 'left', 5], [self.actionBtn, 'bottom', 5], [self.applyBtn, 'bottom', 5], [self.closeBtn, 'bottom', 5], [self.closeBtn, 'right',5]),
+                            attachPosition = ([self.actionBtn, 'right', 1, 33], [self.closeBtn, 'left', 0, 67]),
+                            attachControl = ([self.applyBtn, 'left', 4, self.actionBtn],[self.applyBtn, 'right', 4, self.closeBtn]),
+                            attachNone = ([self.actionBtn, 'top'], [self.applyBtn, 'top'], [self.closeBtn, 'top']))
+    
+    def ui_hairListCmd(self,*args):
+        self.hairFrontFrameLayoutA = cmds.frameLayout(label='               Front Hair', backgroundColor=[0.0, 0.0, 1.0], font='boldLabelFont', labelVisible=True, labelAlign='center', parent=self.mainFormLayout)
+        self.hairFrontFrameLayoutB = cmds.frameLayout(label='             Load example:', backgroundColor=[0.5, 0.5, 0.5], font='smallBoldLabelFont', labelVisible=True, labelAlign='center')
+        self.hairFrontFrameLayoutC = cmds.frameLayout(label='"hairFrontA_jtA_L/R", "*_jtB_*", ...', backgroundColor=[0.5, 0.5, 0.5], font='smallBoldLabelFont', labelVisible=True, labelAlign='left')
+
+        self.hairFrontTabLayout = cmds.textScrollList(allowMultiSelection=True, parent= self.hairFrontFrameLayoutC)
+
+        self.hairFrontRowLayout = cmds.rowLayout(numberOfColumns=2, adjustableColumn=True, parent= self.hairFrontFrameLayoutC)
+        self.hairFrontLoadButton = cmds.button(label='+', parent=self.hairFrontRowLayout, command= partial(self.ui_manageSelection, self.hairFrontTabLayout, 1))
+        self.hairFrontRemoveButton = cmds.button(label='-', parent=self.hairFrontRowLayout, command= partial(self.ui_manageSelection, self.hairFrontTabLayout, 0))
+
+        ######################################################################################################################################################################################################################
+
+        self.hairSideFrameLayoutA = cmds.frameLayout(label='               Side Hair', backgroundColor=[0.0, 0.0, 1.0], font='boldLabelFont', labelVisible=True, parent=self.mainFormLayout)
+        self.hairSideFrameLayoutB = cmds.frameLayout(label='             Load example:', backgroundColor=[0.5, 0.5, 0.5], font='smallBoldLabelFont', labelVisible=True)
+        self.hairSideFrameLayoutC = cmds.frameLayout(label='"hairSideA_jtA_L/R", "*_jtB_*", ...', backgroundColor=[0.5, 0.5, 0.5], font='smallBoldLabelFont', labelVisible=True)
+
+        self.hairSideTabLayout = cmds.textScrollList(allowMultiSelection=True, parent= self.hairSideFrameLayoutC)
+
+        self.hairSideRowLayout = cmds.rowLayout(numberOfColumns=2, adjustableColumn=True, parent= self.hairSideFrameLayoutC)
+        self.hairSideLoadButton = cmds.button(label='+', parent=self.hairSideRowLayout, command= partial(self.ui_manageSelection, self.hairSideTabLayout, 1))
+        self.hairSideRemoveButton = cmds.button(label='-', parent=self.hairSideRowLayout, command= partial(self.ui_manageSelection, self.hairSideTabLayout, 0))
+
+        ######################################################################################################################################################################################################################
+        
+        self.hairBackFrameLayoutA = cmds.frameLayout(label='               Back Hair', backgroundColor=[0.0, 0.0, 1.0], font='boldLabelFont', labelVisible=True, parent=self.mainFormLayout)
+        self.hairBackFrameLayoutB = cmds.frameLayout(label='             Load example:', backgroundColor=[0.5, 0.5, 0.5], font='smallBoldLabelFont', labelVisible=True)
+        self.hairBackFrameLayoutC = cmds.frameLayout(label='"hairBackA_jtA_L/R", "*_jtB_*", ...', backgroundColor=[0.5, 0.5, 0.5], font='smallBoldLabelFont', labelVisible=True)
+
+        self.hairBackTabLayout = cmds.textScrollList(allowMultiSelection=True, parent= self.hairBackFrameLayoutC)
+
+        self.hairBackRowLayout = cmds.rowLayout(numberOfColumns=2, adjustableColumn=True, parent= self.hairBackFrameLayoutC)
+        self.hairBackLoadButton = cmds.button(label='+', parent=self.hairBackRowLayout, command= partial(self.ui_manageSelection, self.hairBackTabLayout, 1))
+        self.hairBackRemoveButton = cmds.button(label='-', parent=self.hairBackRowLayout, command= partial(self.ui_manageSelection, self.hairBackTabLayout, 0))
+
+        ######################################################################################################################################################################################################################
+        
+        self.hairNeckFrameLayoutA = cmds.frameLayout(label='               Neck Hair', backgroundColor=[0.0, 0.0, 1.0], font='boldLabelFont', labelVisible=True, parent=self.mainFormLayout)
+        self.hairNeckFrameLayoutB = cmds.frameLayout(label='             Load example:', backgroundColor=[0.5, 0.5, 0.5], font='smallBoldLabelFont', labelVisible=True)
+        self.hairNeckFrameLayoutC = cmds.frameLayout(label='"hairNeckA_jtA_L/R", "*_jtB_*", ...', backgroundColor=[0.5, 0.5, 0.5], font='smallBoldLabelFont', labelVisible=True)
+
+        self.hairNeckTabLayout = cmds.textScrollList(allowMultiSelection=True, parent= self.hairNeckFrameLayoutC)
+
+        self.hairNeckRowLayout = cmds.rowLayout(numberOfColumns=2, adjustableColumn=True, parent= self.hairNeckFrameLayoutC)
+        self.hairNeckLoadButton = cmds.button(label='+', parent=self.hairNeckRowLayout, command= partial(self.ui_manageSelection, self.hairNeckTabLayout, 1))
+        self.hairNeckRemoveButton = cmds.button(label='-', parent=self.hairNeckRowLayout, command= partial(self.ui_manageSelection, self.hairNeckTabLayout, 0))
+
+        ######################################################################################################################################################################################################################
+        
+        self.hairTopFrameLayoutA = cmds.frameLayout(label='               Top Hair', backgroundColor=[0.0, 0.0, 1.0], font='boldLabelFont', labelVisible=True, parent=self.mainFormLayout)
+        self.hairTopFrameLayoutB = cmds.frameLayout(label='             Load example:', backgroundColor=[0.5, 0.5, 0.5], font='smallBoldLabelFont', labelVisible=True)
+        self.hairTopFrameLayoutC = cmds.frameLayout(label='"hairTopA_jtA_L/R", "*_jtB_*", ...', backgroundColor=[0.5, 0.5, 0.5], font='smallBoldLabelFont', labelVisible=True)
+
+        self.hairTopTabLayout = cmds.textScrollList(allowMultiSelection=True, parent= self.hairTopFrameLayoutC)
+
+        self.hairTopRowLayout = cmds.rowLayout(numberOfColumns=2, adjustableColumn=True, parent= self.hairTopFrameLayoutC)
+        self.hairTopLoadButton = cmds.button(label='+', parent=self.hairTopRowLayout, command= partial(self.ui_manageSelection, self.hairTopTabLayout, 1))
+        self.hairTopRemoveButton = cmds.button(label='-', parent=self.hairTopRowLayout, command= partial(self.ui_manageSelection, self.hairTopTabLayout, 0))
+
+        ######################################################################################################################################################################################################################
+        
+        self.hairExtraFrameLayoutA = cmds.frameLayout(label='               Extra Hair', backgroundColor=[0.0, 0.0, 1.0], font='boldLabelFont', labelVisible=True, parent=self.mainFormLayout)
+        self.hairExtraFrameLayoutB = cmds.frameLayout(label='             Load example:', backgroundColor=[0.5, 0.5, 0.5], font='smallBoldLabelFont', labelVisible=True)
+        self.hairExtraFrameLayoutC = cmds.frameLayout(label='"hairExtraA_jtA_L/R", "*_jtB_*", ...', backgroundColor=[0.5, 0.5, 0.5], font='smallBoldLabelFont', labelVisible=True)
+
+        self.hairExtraTabLayout = cmds.textScrollList(allowMultiSelection=True, parent= self.hairExtraFrameLayoutC)
+
+        self.hairExtraRowLayout = cmds.rowLayout(numberOfColumns=2, adjustableColumn=True, parent= self.hairExtraFrameLayoutC)
+        self.hairExtraLoadButton = cmds.button(label='+', parent=self.hairExtraRowLayout, command= partial(self.ui_manageSelection, self.hairExtraTabLayout, 1))
+        self.hairExtraRemoveButton = cmds.button(label='-', parent=self.hairExtraRowLayout, command= partial(self.ui_manageSelection, self.hairExtraTabLayout, 0))
+        
+
+        ######################################################################################################################################################################################################################
+        
+        cmds.formLayout(self.mainFormLayout, edit= True,
+                attachForm=([self.hairFrontFrameLayoutA, 'top', 2], 
+                            [self.hairFrontFrameLayoutA, 'left', 4],
+                            [self.hairFrontFrameLayoutA, 'bottom', 200],
+                            ##########################################
+                            [self.hairSideFrameLayoutA, 'top', 2],
+                            [self.hairSideFrameLayoutA, 'left', 180],
+                            [self.hairSideFrameLayoutA, 'bottom', 200],
+                            ##########################################
+                            [self.hairBackFrameLayoutA, 'top', 2],
+                            [self.hairBackFrameLayoutA, 'left', 350],
+                            [self.hairBackFrameLayoutA, 'bottom', 200],
+                            ##########################################
+                            [self.hairNeckFrameLayoutA, 'top', 2],
+                            [self.hairNeckFrameLayoutA, 'right',350],
+                            [self.hairNeckFrameLayoutA, 'bottom', 200],
+                            ##########################################
+                            [self.hairTopFrameLayoutA, 'top', 2],
+                            [self.hairTopFrameLayoutA, 'right', 180],
+                            [self.hairTopFrameLayoutA, 'bottom', 200],
+                            ##########################################
+                            [self.hairExtraFrameLayoutA, 'top', 2], 
+                            [self.hairExtraFrameLayoutA, 'right', 4],
+                            [self.hairExtraFrameLayoutA, 'bottom', 200]))
+        
+        self.passiveJointCheckBox = cmds.checkBox(label='Passive Joint Chain:', onCommand = self.ui_enablePassiveJointChain, offCommand = self.ui_disablePassiveJointChain, parent=self.mainFormLayout)
+        self.drivenJointCheckBox = cmds.checkBox(label='Driven Key Joint Chain:',onCommand = self.ui_enableDrivenJointChain, offCommand = self.ui_disableDrivenJointChain, enable=False, parent=self.mainFormLayout)
+        self.ikJointCheckBox = cmds.checkBox(label='IK Joint Chain:', onCommand = self.ui_enableIkJointChain, offCommand = self.ui_disableIkJointChain, enable=False, parent=self.mainFormLayout)
+        
+
+        self.passiveFrontHairCheckBox = cmds.checkBox(label='Front Hair', enable=False, parent=self.mainFormLayout)
+        self.passiveSideHairCheckBox = cmds.checkBox(label='Side Hair', enable=False, parent=self.mainFormLayout)
+        self.passiveBackHairCheckBox = cmds.checkBox(label='Back Hair', enable=False, parent=self.mainFormLayout)
+        self.passiveNeckHairCheckBox = cmds.checkBox(label='Neck Hair', enable=False, parent=self.mainFormLayout)
+        self.passiveTopHairCheckBox = cmds.checkBox(label='Top Hair', enable=False, parent=self.mainFormLayout)
+        self.passiveExtraHairCheckBox = cmds.checkBox(label='Extra Hair', enable=False, parent=self.mainFormLayout)
+        
+        self.drivenFrontHairCheckBox = cmds.checkBox(label='Front Hair', enable=False, parent=self.mainFormLayout)
+        self.drivenSideHairCheckBox = cmds.checkBox(label='Side Hair', enable=False, parent=self.mainFormLayout)
+        self.drivenBackHairCheckBox = cmds.checkBox(label='Back Hair', enable=False, parent=self.mainFormLayout)
+        self.drivenNeckHairCheckBox = cmds.checkBox(label='Neck Hair', enable=False, parent=self.mainFormLayout)
+        self.drivenTopHairCheckBox = cmds.checkBox(label='Top Hair', enable=False, parent=self.mainFormLayout)
+        self.drivenExtraHairCheckBox = cmds.checkBox(label='Extra Hair', enable=False, parent=self.mainFormLayout)
+        
+        self.ikFrontHairCheckBox = cmds.checkBox(label='Front Hair', enable=False, parent=self.mainFormLayout)
+        self.ikSideHairCheckBox = cmds.checkBox(label='Side Hair', enable=False, parent=self.mainFormLayout)
+        self.ikBackHairCheckBox = cmds.checkBox(label='Back Hair', enable=False, parent=self.mainFormLayout)
+        self.ikNeckHairCheckBox = cmds.checkBox(label='Neck Hair', enable=False, parent=self.mainFormLayout)
+        self.ikTopHairCheckBox = cmds.checkBox(label='Top Hair', enable=False, parent=self.mainFormLayout)
+        self.ikExtraHairCheckBox = cmds.checkBox(label='Extra Hair', enable=False, parent=self.mainFormLayout)
+
+        
+        cmds.formLayout(self.mainFormLayout, e=True,
+                attachForm=([self.passiveJointCheckBox, 'left', 10],
+                            ##########################################
+                            [self.drivenJointCheckBox, 'left', 10],
+                            ##########################################
+                            [self.ikJointCheckBox, 'left', 10]),
+                attachControl=([self.passiveJointCheckBox,'top', 30, self.hairFrontFrameLayoutA],
+                               [self.drivenJointCheckBox, 'top', 60, self.hairFrontFrameLayoutA],
+                               [self.ikJointCheckBox, 'top', 90, self.hairFrontFrameLayoutA],
+                               
+                               [self.passiveFrontHairCheckBox, 'top', 30, self.hairFrontFrameLayoutA],
+                               [self.passiveSideHairCheckBox, 'top', 30, self.hairSideFrameLayoutA],
+                               [self.passiveBackHairCheckBox, 'top', 30, self.hairBackFrameLayoutA],
+                               [self.passiveNeckHairCheckBox, 'top', 30, self.hairNeckFrameLayoutA],
+                               [self.passiveTopHairCheckBox, 'top', 30, self.hairTopFrameLayoutA],
+                               [self.passiveExtraHairCheckBox, 'top', 30, self.hairExtraFrameLayoutA],
+                               
+                               [self.passiveFrontHairCheckBox, 'left', 30, self.passiveJointCheckBox],
+                               [self.passiveSideHairCheckBox, 'left', 30, self.passiveFrontHairCheckBox],
+                               [self.passiveBackHairCheckBox, 'left', 30, self.passiveSideHairCheckBox],
+                               [self.passiveNeckHairCheckBox, 'left', 30, self.passiveBackHairCheckBox],
+                               [self.passiveTopHairCheckBox, 'left', 30, self.passiveNeckHairCheckBox],
+                               [self.passiveExtraHairCheckBox, 'left', 30, self.passiveTopHairCheckBox],
+                               
+                               
+                               [self.drivenFrontHairCheckBox, 'top', 60, self.hairFrontFrameLayoutA],
+                               [self.drivenSideHairCheckBox, 'top', 60, self.hairSideFrameLayoutA],
+                               [self.drivenBackHairCheckBox, 'top', 60, self.hairBackFrameLayoutA],
+                               [self.drivenNeckHairCheckBox, 'top', 60, self.hairNeckFrameLayoutA],
+                               [self.drivenTopHairCheckBox, 'top', 60, self.hairTopFrameLayoutA],
+                               [self.drivenExtraHairCheckBox, 'top', 60, self.hairExtraFrameLayoutA],
+                               
+                               [self.drivenFrontHairCheckBox, 'left', 30, self.drivenJointCheckBox],
+                               [self.drivenSideHairCheckBox, 'left', 30, self.drivenFrontHairCheckBox],
+                               [self.drivenBackHairCheckBox, 'left', 30, self.drivenSideHairCheckBox],
+                               [self.drivenNeckHairCheckBox, 'left', 30, self.drivenBackHairCheckBox],
+                               [self.drivenTopHairCheckBox, 'left', 30, self.drivenNeckHairCheckBox],
+                               [self.drivenExtraHairCheckBox, 'left', 30, self.drivenTopHairCheckBox],
+                               
+                               
+                               [self.ikFrontHairCheckBox, 'top', 90, self.hairFrontFrameLayoutA],
+                               [self.ikSideHairCheckBox, 'top', 90, self.hairSideFrameLayoutA],
+                               [self.ikBackHairCheckBox, 'top', 90, self.hairBackFrameLayoutA],
+                               [self.ikNeckHairCheckBox, 'top', 90, self.hairNeckFrameLayoutA],
+                               [self.ikTopHairCheckBox, 'top', 90, self.hairTopFrameLayoutA],
+                               [self.ikExtraHairCheckBox, 'top', 90, self.hairExtraFrameLayoutA],
+                               
+                               [self.ikFrontHairCheckBox, 'left', 30, self.ikJointCheckBox],
+                               [self.ikSideHairCheckBox, 'left', 30, self.ikFrontHairCheckBox],
+                               [self.ikBackHairCheckBox, 'left', 30, self.ikSideHairCheckBox],
+                               [self.ikNeckHairCheckBox, 'left', 30, self.ikBackHairCheckBox],
+                               [self.ikTopHairCheckBox, 'left', 30, self.ikNeckHairCheckBox],
+                               [self.ikExtraHairCheckBox, 'left', 30, self.ikTopHairCheckBox]))
+                               
+    
+    def ui_enablePassiveJointChain(self,*args):
+        cmds.checkBox(self.drivenJointCheckBox, e=True, enable=True)
+        cmds.checkBox(self.ikJointCheckBox, e=True, enable=True)
+        
+        cmds.checkBox(self.passiveFrontHairCheckBox, e=True, enable=True)
+        cmds.checkBox(self.passiveSideHairCheckBox, e=True, enable=True)
+        cmds.checkBox(self.passiveBackHairCheckBox, e=True, enable=True)
+        cmds.checkBox(self.passiveNeckHairCheckBox, e=True, enable=True)
+        cmds.checkBox(self.passiveTopHairCheckBox, e=True, enable=True)
+        cmds.checkBox(self.passiveExtraHairCheckBox, e=True, enable=True)
+        
+    def ui_disablePassiveJointChain(self,*args):
+        cmds.checkBox(self.drivenJointCheckBox, e=True, enable=False)
+        cmds.checkBox(self.ikJointCheckBox, e=True, enable=False)
+        
+        cmds.checkBox(self.passiveFrontHairCheckBox, e=True, enable=False)
+        cmds.checkBox(self.passiveSideHairCheckBox, e=True, enable=False)
+        cmds.checkBox(self.passiveBackHairCheckBox, e=True, enable=False)
+        cmds.checkBox(self.passiveNeckHairCheckBox, e=True, enable=False)
+        cmds.checkBox(self.passiveTopHairCheckBox, e=True, enable=False)
+        cmds.checkBox(self.passiveExtraHairCheckBox, e=True, enable=False)
+        
+    def ui_enableDrivenJointChain(self,*args):        
+        cmds.checkBox(self.drivenFrontHairCheckBox, e=True, enable=True)
+        cmds.checkBox(self.drivenSideHairCheckBox, e=True, enable=True)
+        cmds.checkBox(self.drivenBackHairCheckBox, e=True, enable=True)
+        cmds.checkBox(self.drivenNeckHairCheckBox, e=True, enable=True)
+        cmds.checkBox(self.drivenTopHairCheckBox, e=True, enable=True)
+        cmds.checkBox(self.drivenExtraHairCheckBox, e=True, enable=True)
+        
+    def ui_disableDrivenJointChain(self,*args):        
+        cmds.checkBox(self.drivenFrontHairCheckBox, e=True, enable=False)
+        cmds.checkBox(self.drivenSideHairCheckBox, e=True, enable=False)
+        cmds.checkBox(self.drivenBackHairCheckBox, e=True, enable=False)
+        cmds.checkBox(self.drivenNeckHairCheckBox, e=True, enable=False)
+        cmds.checkBox(self.drivenTopHairCheckBox, e=True, enable=False)
+        cmds.checkBox(self.drivenExtraHairCheckBox, e=True, enable=False)
+        
+    def ui_enableIkJointChain(self,*args):        
+        cmds.checkBox(self.ikFrontHairCheckBox, e=True, enable=True)
+        cmds.checkBox(self.ikSideHairCheckBox, e=True, enable=True)
+        cmds.checkBox(self.ikBackHairCheckBox, e=True, enable=True)
+        cmds.checkBox(self.ikNeckHairCheckBox, e=True, enable=True)
+        cmds.checkBox(self.ikTopHairCheckBox, e=True, enable=True)
+        cmds.checkBox(self.ikExtraHairCheckBox, e=True, enable=True)
+        
+    def ui_disableIkJointChain(self,*args):        
+        cmds.checkBox(self.ikFrontHairCheckBox, e=True, enable=False)
+        cmds.checkBox(self.ikSideHairCheckBox, e=True, enable=False)
+        cmds.checkBox(self.ikBackHairCheckBox, e=True, enable=False)
+        cmds.checkBox(self.ikNeckHairCheckBox, e=True, enable=False)
+        cmds.checkBox(self.ikTopHairCheckBox, e=True, enable=False)
+        cmds.checkBox(self.ikExtraHairCheckBox, e=True, enable=False)
+    
+    def ui_helpMenuCmd(self, *args):
+        cmds.launch(web= 'http://google.com')
+        
+    def ui_editMenuSaveCmd(self, *args):
+        pass
+    
+    def ui_editMenuResetCmd(self, *args):
+        pass
+        
+    def ui_editMenuToolCmd(self, *args):
+        pass
+    
+    def ui_editMenuActionCmd(self, *args):
+        pass
+        
+    def ui_actionBtnCmd(self,*args):
+        self.ui_applyBtnCmd()
+        self.ui_closeBtnCmd()
+    
+    def ui_applyBtnCmd(self, *args):
+        pass
+        
+    def ui_closeBtnCmd(self, *args):
+        cmds.deleteUI(self.window, window=True)
+
+    def ui_manageSelection(self,tslName, oper, *args):
+        selectedObjects = cmds.ls(sl=True, type='joint')
+        if oper == 1:
+            if len(selectedObjects) <= 0:
+                print 'No joint is selected'
+            else:
+                for so in selectedObjects:
+                    allItemsList = cmds.textScrollList(tslName, q=True, allItems=True)
+                    if allItemsList == None:
+                        cmds.textScrollList(tslName, e=True, append=so)
+                        
+                    else:
+                        if so in allItemsList:
+                            print '{0} was not added to the list because it is already in the list'.format(so)
+                        else:
+                            cmds.textScrollList(tslName, e=True, append=so)
+        if oper == 0:
+            selectedIndexTsl = cmds.textScrollList(tslName, q=True, selectIndexedItem=True)
+            if selectedIndexTsl == None:
+                print 'Nothing is selected in the list to be removed '
+            else:
+                cmds.textScrollList(tslName, e=True, removeIndexedItem=selectedIndexTsl)
+
+
+
+                               
+                               
+        
+        
+        
+
+testWindow = AR_OptionsWindow()
+testWindow.create()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
