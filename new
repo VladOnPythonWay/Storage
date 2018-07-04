@@ -328,11 +328,11 @@ class AR_OptionsWindow(object):
                         else:
                             cmds.textScrollList(tslName, e=True, append=so)
         if oper == 0:
-            selectedIndexTsl = cmds.textScrollList(tslName, q=True, selectIndexedItem=True)
+            selectedIndexTsl = cmds.textScrollList(tslName, q=True, selectItem=True)
             if selectedIndexTsl == None:
                 print 'Nothing is selected in the list to be removed '
             else:
-                cmds.textScrollList(tslName, e=True, removeIndexedItem=selectedIndexTsl)
+                cmds.textScrollList(tslName, e=True, removeItem=selectedIndexTsl)
 
 
 
@@ -344,31 +344,3 @@ class AR_OptionsWindow(object):
 
 testWindow = AR_OptionsWindow()
 testWindow.create()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
